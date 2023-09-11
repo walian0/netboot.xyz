@@ -1,12 +1,25 @@
 #!ipxe
 ###
-### netboot.xyz-custom menu
+### netboot.xyz-custom menu example
 ###
+isset ${dhcp-server} || goto static_ip
+set ipparam BOOTIF=${netX/mac} ip=dhcp
+goto boot
 
-:start
-echo Hello world!
-sleep 10
-goto custom_exit
+:static_ip
+# Arch Linux cannot use DNS if booted with a static IP
+# See https://bugs.archlinux.org/task/63174
+# Remove this hack when the above bug is properly resolved
+set ipparam BOOTIF=${netX/mac} ip=${ip}::${gateway}:${netmask}
+goto boot
+
+:boot
+set params archiso_http_srv=http://192.168.88.254/iso archisobasedir=x86_64 cms_verify=y ${ipparam} net.ifnames=0
+kernel http://192.168.88.254/iso/boot/x86_64/vmlinuz-linux ${params}
+initrd http://192.168.88.254/iso/boot/x86_64/initramfs-linux.img
+imgargs vmlinuz 
+boot || goto custom_exit
 
 :custom_exit
-exit 0
+chain utils.ipxe
+exit
